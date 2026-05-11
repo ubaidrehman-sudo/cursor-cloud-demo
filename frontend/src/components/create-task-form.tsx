@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { createTask, type Task } from "@/services/taskService";
+import { createTask, type Task } from "@/services/api";
 
 interface CreateTaskFormProps {
   onTaskCreated?: (task: Task) => void;

@@ -1,10 +1,15 @@
 "use client";
 
-import { use, useState, Suspense } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { getTasks, toggleTask, deleteTask, type Task } from "@/services/taskService";
+import {
+  deleteTask,
+  fetchTasks,
+  updateTaskStatus,
+  type Task,
+} from "@/services/api";
 
 function TaskListSkeleton() {
   return (
@@ -36,23 +41,28 @@ function TaskListError({ error, onRetry }: { error: string; onRetry: () => void 
 
 function TaskItem({
   task,
+  busy,
   onToggle,
   onDelete,
 }: {
   task: Task;
-  onToggle: (id: string) => void;
-  onDelete: (id: string) => void;
+  busy: boolean;
+  onToggle: (id: number) => void;
+  onDelete: (id: number) => void;
 }) {
+  const done = task.status === "DONE";
+
   return (
     <Card>
       <CardContent className="flex items-center gap-3 py-3">
         <Checkbox
-          checked={task.completed}
+          checked={done}
+          disabled={busy}
           onCheckedChange={() => onToggle(task.id)}
         />
         <span
           className={`flex-1 text-sm ${
-            task.completed ? "line-through text-muted-foreground" : ""
+            done ? "line-through text-muted-foreground" : ""
           }`}
         >
           {task.title}
@@ -60,6 +70,7 @@ function TaskItem({
         <Button
           variant="ghost"
           size="sm"
+          disabled={busy}
           onClick={() => onDelete(task.id)}
           className="text-muted-foreground hover:text-destructive"
         >
@@ -70,63 +81,116 @@ function TaskItem({
   );
 }
 
-function TaskListContent({ tasksPromise }: { tasksPromise: Promise<Task[]> }) {
-  const initialTasks = use(tasksPromise);
-  const [tasks, setTasks] = useState<Task[]>(initialTasks);
-  const [error, setError] = useState<string | null>(null);
+export function TaskList() {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [listError, setListError] = useState<string | null>(null);
+  const [pendingId, setPendingId] = useState<number | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
-  const handleToggle = async (id: string) => {
+  const retryLoad = useCallback(() => {
+    setLoading(true);
+    setListError(null);
+    void fetchTasks()
+      .then((data) => {
+        setTasks(data);
+      })
+      .catch((err) => {
+        setListError(
+          err instanceof Error ? err.message : "Failed to load tasks",
+        );
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchTasks()
+      .then((data) => {
+        if (!cancelled) {
+          setTasks(data);
+          setListError(null);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setListError(
+            err instanceof Error ? err.message : "Failed to load tasks",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleToggle = async (id: number) => {
+    const task = tasks.find((t) => t.id === id);
+    if (!task) return;
+    const nextStatus = task.status === "DONE" ? "TODO" : "DONE";
+
+    setPendingId(id);
+    setActionError(null);
     try {
-      const updated = await toggleTask(id);
+      const updated = await updateTaskStatus(id, nextStatus);
       setTasks((prev) => prev.map((t) => (t.id === id ? updated : t)));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update task");
+      setActionError(err instanceof Error ? err.message : "Failed to update task");
+    } finally {
+      setPendingId(null);
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
+    setPendingId(id);
+    setActionError(null);
     try {
       await deleteTask(id);
       setTasks((prev) => prev.filter((t) => t.id !== id));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete task");
+      setActionError(err instanceof Error ? err.message : "Failed to delete task");
+    } finally {
+      setPendingId(null);
     }
   };
 
-  if (error) {
-    return <TaskListError error={error} onRetry={() => setError(null)} />;
+  if (loading) {
+    return <TaskListSkeleton />;
   }
 
-  if (tasks.length === 0) {
-    return (
-      <Card>
-        <CardContent className="py-8 text-center text-muted-foreground">
-          No tasks yet. Create one above!
-        </CardContent>
-      </Card>
-    );
+  if (listError) {
+    return <TaskListError error={listError} onRetry={retryLoad} />;
   }
 
   return (
     <div className="space-y-2">
-      {tasks.map((task) => (
-        <TaskItem
-          key={task.id}
-          task={task}
-          onToggle={handleToggle}
-          onDelete={handleDelete}
-        />
-      ))}
+      {actionError && (
+        <p className="text-sm text-destructive" role="alert">
+          {actionError}
+        </p>
+      )}
+      {tasks.length === 0 ? (
+        <Card>
+          <CardContent className="py-8 text-center text-muted-foreground">
+            No tasks yet. Create one above!
+          </CardContent>
+        </Card>
+      ) : (
+        tasks.map((task) => (
+          <TaskItem
+            key={task.id}
+            task={task}
+            busy={pendingId === task.id}
+            onToggle={handleToggle}
+            onDelete={handleDelete}
+          />
+        ))
+      )}
     </div>
-  );
-}
-
-export function TaskList() {
-  const [tasksPromise] = useState(() => getTasks());
-
-  return (
-    <Suspense fallback={<TaskListSkeleton />}>
-      <TaskListContent tasksPromise={tasksPromise} />
-    </Suspense>
   );
 }
