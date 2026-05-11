@@ -11,7 +11,7 @@ async function bootstrap() {
           .split(',')
           .map((s) => s.trim())
           .filter(Boolean)
-      : true,
+      : (process.env.FRONTEND_ORIGIN ?? 'http://localhost:3000'),
     methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type'],
   });
