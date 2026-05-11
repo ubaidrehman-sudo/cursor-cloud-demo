@@ -20,6 +20,32 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Playwright smoke test
+
+Playwright is configured with a single Chromium smoke test in `tests/smoke.spec.ts`:
+
+- open homepage
+- create a task
+- verify the task appears
+
+Run once after install:
+
+```bash
+npx playwright install chromium
+```
+
+Run tests:
+
+```bash
+npm run test:e2e
+```
+
+Notes:
+
+- By default, tests use `http://127.0.0.1:3000` and start `npm run dev` automatically.
+- If the app is already running (for example with `docker compose up --build`), Playwright reuses that server.
+- Set `PLAYWRIGHT_BASE_URL` if your app is exposed on a different URL.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
