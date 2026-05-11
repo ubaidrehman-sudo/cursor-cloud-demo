@@ -42,8 +42,9 @@ npm run test:e2e
 
 Notes:
 
-- By default, tests use `http://127.0.0.1:3000` and start `npm run dev` automatically.
+- By default, tests use `http://localhost:3000` and start `npm run dev` automatically.
 - If the app is already running (for example with `docker compose up --build`), Playwright reuses that server.
+- The smoke test mocks only the `/tasks` API calls to stay deterministic while still exercising the create-task UI flow.
 - Set `PLAYWRIGHT_BASE_URL` if your app is exposed on a different URL.
 
 ## Learn More
