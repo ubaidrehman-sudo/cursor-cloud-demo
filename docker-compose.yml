@@ -1,0 +1,50 @@
+# Local stack for the engineering evaluation MVP: web UI, API, and database.
+# Run from the repo root: docker compose up --build
+#
+# Default URLs after `up`:
+#   - Frontend: http://localhost:3000
+#   - Backend API: http://localhost:4000
+#   - Postgres: localhost:5432 (optional host access; backend uses the internal hostname `postgres`)
+
+services:
+  # Official PostgreSQL image. Backend connects via hostname `postgres` on the default compose network.
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-tasks_db}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      # Uses the same env vars the Postgres image sets inside the container ($$ becomes $ in Compose).
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # NestJS API — waits for Postgres to be healthy before starting migrations and the server.
+  backend:
+    build:
+      context: ./backend
+    environment:
+      PORT: ${BACKEND_PORT:-4000}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-tasks_db}?schema=public
+      # Browser origin for CORS (Next.js dev server or Docker-published frontend).
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:3000}
+    ports:
+      - "${BACKEND_PORT:-4000}:${BACKEND_PORT:-4000}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Next.js app — built with NEXT_PUBLIC_API_URL so the browser calls the API on the host-mapped port.
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000}
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      - backend
