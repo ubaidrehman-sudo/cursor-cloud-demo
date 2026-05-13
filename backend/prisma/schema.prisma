@@ -10,6 +10,7 @@ model Task {
   id        Int        @id @default(autoincrement())
   title     String
   status    TaskStatus @default(TODO)
+  priority  TaskPriority @default(medium)
   createdAt DateTime   @default(now())
 }
 
@@ -17,4 +18,10 @@ enum TaskStatus {
   TODO
   IN_PROGRESS
   DONE
+}
+
+enum TaskPriority {
+  low
+  medium
+  high
 }
