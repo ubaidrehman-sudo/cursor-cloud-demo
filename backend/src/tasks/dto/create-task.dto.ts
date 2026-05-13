@@ -1,5 +1,5 @@
 import { TaskPriority } from '@prisma/client';
-import { IsEnum, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsEnum, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class CreateTaskDto {
   @IsString({ message: 'Task title must be a string.' })
@@ -11,9 +11,8 @@ export class CreateTaskDto {
   })
   title!: string;
 
-  @IsOptional()
   @IsEnum(TaskPriority, {
     message: 'Task priority must be one of: low, medium, high.',
   })
-  priority?: TaskPriority;
+  priority!: TaskPriority;
 }
