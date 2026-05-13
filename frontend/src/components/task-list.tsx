@@ -8,6 +8,7 @@ import {
   deleteTask,
   fetchTasks,
   updateTaskStatus,
+  type TaskPriority,
   type Task,
 } from "@/services/api";
 
@@ -39,6 +40,22 @@ function TaskListError({ error, onRetry }: { error: string; onRetry: () => void 
   );
 }
 
+function priorityLabel(priority: TaskPriority): string {
+  if (priority === "high") return "High";
+  if (priority === "low") return "Low";
+  return "Medium";
+}
+
+function priorityBadgeClass(priority: TaskPriority): string {
+  if (priority === "high") {
+    return "border-red-200 bg-red-50 text-red-700";
+  }
+  if (priority === "low") {
+    return "border-green-200 bg-green-50 text-green-700";
+  }
+  return "border-amber-200 bg-amber-50 text-amber-700";
+}
+
 function TaskItem({
   task,
   busy,
@@ -60,13 +77,20 @@ function TaskItem({
           disabled={busy}
           onCheckedChange={() => onToggle(task.id)}
         />
-        <span
-          className={`flex-1 text-sm ${
-            done ? "line-through text-muted-foreground" : ""
-          }`}
-        >
-          {task.title}
-        </span>
+        <div className="flex flex-1 items-center gap-2">
+          <span
+            className={`text-sm ${done ? "line-through text-muted-foreground" : ""}`}
+          >
+            {task.title}
+          </span>
+          <span
+            className={`rounded-full border px-2 py-0.5 text-xs font-medium ${priorityBadgeClass(
+              task.priority,
+            )}`}
+          >
+            {priorityLabel(task.priority)}
+          </span>
+        </div>
         <Button
           variant="ghost"
           size="sm"

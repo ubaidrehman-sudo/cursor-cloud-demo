@@ -6,6 +6,7 @@ test("homepage smoke flow creates a task", async ({ page }) => {
     id: number;
     title: string;
     status: "TODO";
+    priority: "low" | "medium" | "high";
     createdAt: string;
   }> = [];
   let nextId = 1;
@@ -23,11 +24,15 @@ test("homepage smoke flow creates a task", async ({ page }) => {
     }
 
     if (method === "POST") {
-      const body = route.request().postDataJSON() as { title?: string };
+      const body = route.request().postDataJSON() as {
+        title?: string;
+        priority?: "low" | "medium" | "high";
+      };
       const task = {
         id: nextId++,
         title: body.title ?? "",
         status: "TODO" as const,
+        priority: body.priority ?? "medium",
         createdAt: new Date().toISOString(),
       };
       tasks.unshift(task);

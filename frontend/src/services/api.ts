@@ -1,9 +1,11 @@
 export type TaskStatus = "TODO" | "IN_PROGRESS" | "DONE";
+export type TaskPriority = "low" | "medium" | "high";
 
 export interface Task {
   id: number;
   title: string;
   status: TaskStatus;
+  priority: TaskPriority;
   createdAt: string;
 }
 
@@ -62,10 +64,10 @@ export function fetchTasks(): Promise<Task[]> {
   return apiRequest<Task[]>("/tasks");
 }
 
-export function createTask(title: string): Promise<Task> {
+export function createTask(title: string, priority: TaskPriority): Promise<Task> {
   return apiRequest<Task>("/tasks", {
     method: "POST",
-    body: JSON.stringify({ title }),
+    body: JSON.stringify({ title, priority }),
   });
 }
 
